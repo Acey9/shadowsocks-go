@@ -1,12 +1,12 @@
 package shadowsocks
 
 import (
-	"errors"
-	"fmt"
-	"os"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/binary"
+	"errors"
+	"fmt"
+	"os"
 )
 
 func PrintVersion() {

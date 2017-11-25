@@ -13,12 +13,23 @@ const (
 	AddrMask        byte = 0xf
 )
 
+const (
+	STAGE_INIT       = 0
+	STAGE_ADDR       = 1
+	STAGE_UDP_ASSOC  = 2
+	STAGE_DNS        = 3
+	STAGE_CONNECTING = 4
+	STAGE_STREAM     = 5
+	TEST_SPOOF       = false //TODO
+)
+
 type Conn struct {
 	net.Conn
 	*Cipher
 	readBuf  []byte
 	writeBuf []byte
 	chunkId  uint32
+	Stage    uint8
 }
 
 func NewConn(c net.Conn, cipher *Cipher) *Conn {
@@ -26,7 +37,15 @@ func NewConn(c net.Conn, cipher *Cipher) *Conn {
 		Conn:     c,
 		Cipher:   cipher,
 		readBuf:  leakyBuf.Get(),
-		writeBuf: leakyBuf.Get()}
+		writeBuf: leakyBuf.Get(),
+		Stage:    STAGE_INIT,
+	}
+}
+
+func (c *Conn) SetStage(stage uint8) {
+	if TEST_SPOOF {
+		c.Stage = stage
+	}
 }
 
 func (c *Conn) Close() error {
@@ -75,10 +94,12 @@ func DialWithRawAddr(rawaddr []byte, server string, cipher *Cipher) (c *Conn, er
 		rawaddr[0] |= OneTimeAuthMask
 		rawaddr = otaConnectAuth(cipher.iv, cipher.key, rawaddr)
 	}
+	c.SetStage(STAGE_ADDR)
 	if _, err = c.write(rawaddr); err != nil {
 		c.Close()
 		return nil, err
 	}
+	c.SetStage(STAGE_CONNECTING)
 	return
 }
 
@@ -114,6 +135,17 @@ func (c *Conn) GetAndIncrChunkId() (chunkId uint32) {
 }
 
 func (c *Conn) Read(b []byte) (n int, err error) {
+
+	buf := make([]byte, 2)
+	if c.Stage == STAGE_ADDR && !c.ota {
+		n, err = c.Conn.Read(buf)
+		if err != nil {
+			return
+		}
+		fmt.Printf("salt.buf:% 2x\n", buf)
+		c.SetStage(STAGE_CONNECTING)
+	}
+
 	if c.dec == nil {
 		iv := make([]byte, c.info.ivLen)
 		if _, err = io.ReadFull(c.Conn, iv); err != nil {
@@ -180,7 +212,14 @@ func (c *Conn) write(b []byte) (n int, err error) {
 		copy(cipherData, iv)
 	}
 
+	fmt.Println("write.STAGE:", c.Stage)
+
 	c.encrypt(cipherData[len(iv):], b)
+	if c.Stage == STAGE_ADDR && !c.ota {
+		buf := []byte("\x01\x02")
+		fmt.Printf("conn.write.salt:% 2x\n", buf)
+		n, err = c.Conn.Write(buf)
+	}
 	n, err = c.Conn.Write(cipherData)
 	return
 }

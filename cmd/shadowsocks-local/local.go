@@ -357,7 +357,7 @@ func main() {
 
 	var configFile, cmdServer, cmdLocal string
 	var cmdConfig ss.Config
-	var printVer bool
+	var printVer, spoof bool
 
 	flag.BoolVar(&printVer, "version", false, "print version")
 	flag.StringVar(&configFile, "c", "config.json", "specify config file")
@@ -368,6 +368,7 @@ func main() {
 	flag.IntVar(&cmdConfig.Timeout, "t", 300, "timeout in seconds")
 	flag.IntVar(&cmdConfig.LocalPort, "l", 0, "local socks5 proxy port")
 	flag.StringVar(&cmdConfig.Method, "m", "", "encryption method, default: aes-256-cfb")
+	flag.BoolVar(&spoof, "f", false, "protocol spoof")
 	flag.BoolVar((*bool)(&debug), "d", false, "print debug message")
 	flag.BoolVar(&cmdConfig.Auth, "A", false, "one time auth")
 
@@ -409,6 +410,7 @@ func main() {
 	if config.Method == "" {
 		config.Method = "aes-256-cfb"
 	}
+	config.Spoof = spoof
 	if len(config.ServerPassword) == 0 {
 		if !enoughOptions(config) {
 			fmt.Fprintln(os.Stderr, "must specify server address, password and both server/local port")

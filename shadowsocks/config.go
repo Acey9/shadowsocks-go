@@ -25,6 +25,7 @@ type Config struct {
 	Password   string      `json:"password"`
 	Method     string      `json:"method"` // encryption method
 	Auth       bool        `json:"auth"`   // one time auth
+	Spoof      bool        `json:"sproof"` //protocol spoof
 
 	// following options are only used by server
 	PortPassword map[string]string `json:"port_password"`

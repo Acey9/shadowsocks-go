@@ -38,6 +38,8 @@ const (
 
 var debug ss.DebugLog
 
+var server string //TODO
+
 func getRequest(conn *ss.Conn, auth bool) (host string, ota bool, err error) {
 	ss.SetReadTimeout(conn)
 
@@ -135,11 +137,13 @@ func handleConnection(conn *ss.Conn, auth bool) {
 		}
 	}()
 
+	conn.SetStage(ss.STAGE_ADDR)
 	host, ota, err := getRequest(conn, auth)
 	if err != nil {
 		log.Println("error getting request", conn.RemoteAddr(), conn.LocalAddr(), err)
 		return
 	}
+	conn.SetStage(ss.STAGE_CONNECTING)
 	debug.Println("connecting", host)
 	remote, err := net.Dial("tcp", host)
 	if err != nil {
@@ -268,7 +272,8 @@ func waitSignal() {
 }
 
 func run(port, password string, auth bool) {
-	ln, err := net.Listen("tcp", ":"+port)
+	//ln, err := net.Listen("tcp", ":"+port)
+	ln, err := net.Listen("tcp", server+":"+port) //TODO
 	if err != nil {
 		log.Printf("error listening port %v: %v\n", port, err)
 		os.Exit(1)
@@ -324,15 +329,17 @@ func main() {
 	log.SetOutput(os.Stdout)
 
 	var cmdConfig ss.Config
-	var printVer bool
+	var printVer, spoof bool
 	var core int
 
 	flag.BoolVar(&printVer, "version", false, "print version")
 	flag.StringVar(&configFile, "c", "config.json", "specify config file")
 	flag.StringVar(&cmdConfig.Password, "k", "", "password")
+	flag.StringVar(&server, "s", "0.0.0.0", "server address")
 	flag.IntVar(&cmdConfig.ServerPort, "p", 0, "server port")
 	flag.IntVar(&cmdConfig.Timeout, "t", 300, "timeout in seconds")
 	flag.StringVar(&cmdConfig.Method, "m", "", "encryption method, default: aes-256-cfb")
+	flag.BoolVar(&spoof, "f", false, "protocol spoof")
 	flag.IntVar(&core, "core", 0, "maximum number of CPU cores to use, default is determinied by Go runtime")
 	flag.BoolVar((*bool)(&debug), "d", false, "print debug message")
 
@@ -364,6 +371,7 @@ func main() {
 	if config.Method == "" {
 		config.Method = "aes-256-cfb"
 	}
+	config.Spoof = spoof
 	if err = ss.CheckCipherMethod(config.Method); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -374,9 +382,9 @@ func main() {
 	if core > 0 {
 		runtime.GOMAXPROCS(core)
 	}
+
 	for port, password := range config.PortPassword {
 		go run(port, password, config.Auth)
 	}
-
 	waitSignal()
 }
