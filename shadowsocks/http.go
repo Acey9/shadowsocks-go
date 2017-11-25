@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"math/rand"
+	"time"
 )
 
 const (
@@ -71,11 +72,11 @@ func (http *Http) GetHeaderLen() (dataLen uint16, err error) {
 }
 
 func (http *Http) getUa() string {
-	rand.Seed(42)
+	rand.Seed(time.Now().UnixNano())
 	return HttpUserAgent[rand.Intn(len(HttpUserAgent))]
 }
 
 func (http *Http) getHost() string {
-	rand.Seed(42)
+	rand.Seed(time.Now().UnixNano())
 	return HttpHosts[rand.Intn(len(HttpHosts))]
 }
