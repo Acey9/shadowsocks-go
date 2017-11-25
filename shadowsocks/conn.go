@@ -148,14 +148,9 @@ func (c *Conn) Read(b []byte) (n int, err error) {
 		}
 		dataLen, _ := c.SpoofProto.Parse(buf)
 		buf = make([]byte, dataLen)
-		for {
-			if n >= int(dataLen) {
-				break
-			}
-			n, err = c.Conn.Read(buf)
-			if err != nil {
-				return
-			}
+		n, err = c.Conn.Read(buf)
+		if err != nil || n != int(dataLen) {
+			return
 		}
 
 		c.SetStage(STAGE_CONNECTING)
