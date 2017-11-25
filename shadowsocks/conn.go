@@ -212,8 +212,6 @@ func (c *Conn) write(b []byte) (n int, err error) {
 		copy(cipherData, iv)
 	}
 
-	fmt.Println("write.STAGE:", c.Stage)
-
 	c.encrypt(cipherData[len(iv):], b)
 	if c.Stage == STAGE_ADDR && !c.ota {
 		buf := []byte("\x01\x02")
