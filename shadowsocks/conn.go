@@ -20,25 +20,28 @@ const (
 	STAGE_DNS        = 3
 	STAGE_CONNECTING = 4
 	STAGE_STREAM     = 5
-	TEST_SPOOF       = false //TODO
+	TEST_SPOOF       = true //TODO
 )
 
 type Conn struct {
 	net.Conn
 	*Cipher
-	readBuf  []byte
-	writeBuf []byte
-	chunkId  uint32
-	Stage    uint8
+	readBuf    []byte
+	writeBuf   []byte
+	chunkId    uint32
+	Stage      uint8
+	SpoofProto Spoof
 }
 
 func NewConn(c net.Conn, cipher *Cipher) *Conn {
+	spoof := &Http{}
 	return &Conn{
-		Conn:     c,
-		Cipher:   cipher,
-		readBuf:  leakyBuf.Get(),
-		writeBuf: leakyBuf.Get(),
-		Stage:    STAGE_INIT,
+		Conn:       c,
+		Cipher:     cipher,
+		SpoofProto: spoof,
+		readBuf:    leakyBuf.Get(),
+		writeBuf:   leakyBuf.Get(),
+		Stage:      STAGE_INIT,
 	}
 }
 
@@ -136,13 +139,25 @@ func (c *Conn) GetAndIncrChunkId() (chunkId uint32) {
 
 func (c *Conn) Read(b []byte) (n int, err error) {
 
-	buf := make([]byte, 2)
 	if c.Stage == STAGE_ADDR && !c.ota {
+		headLen, _ := c.SpoofProto.GetHeaderLen()
+		buf := make([]byte, headLen)
 		n, err = c.Conn.Read(buf)
-		if err != nil {
+		if err != nil || n != int(headLen) {
 			return
 		}
-		fmt.Printf("salt.buf:% 2x\n", buf)
+		dataLen, _ := c.SpoofProto.Parse(buf)
+		buf = make([]byte, dataLen)
+		for {
+			if n >= int(dataLen) {
+				break
+			}
+			n, err = c.Conn.Read(buf)
+			if err != nil {
+				return
+			}
+		}
+
 		c.SetStage(STAGE_CONNECTING)
 	}
 
@@ -214,9 +229,10 @@ func (c *Conn) write(b []byte) (n int, err error) {
 
 	c.encrypt(cipherData[len(iv):], b)
 	if c.Stage == STAGE_ADDR && !c.ota {
-		buf := []byte("\x01\x02")
-		fmt.Printf("conn.write.salt:% 2x\n", buf)
-		n, err = c.Conn.Write(buf)
+		spoofData, err := c.SpoofProto.Create()
+		if err == nil {
+			n, err = c.Conn.Write(spoofData)
+		}
 	}
 	n, err = c.Conn.Write(cipherData)
 	return
