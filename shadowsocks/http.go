@@ -32,6 +32,19 @@ var HttpHosts = []string{
 	"www.gmw.cn",
 	"www.cnr.cn",
 	"www.youth.cn",
+	"www.baidu.com",
+	"www.163.com",
+	"www.sina.com.cn",
+	"www.17173.com",
+	"www.iqiyi.com",
+	"www.sohu.com",
+	"blog.163.com",
+	"weibo.com",
+	"www.newsmth.net",
+	"www.zhihu.com",
+	"www.ifeng.com",
+	"www.xiachufang.com",
+	"www.douban.com",
 }
 
 var HttpHeader = "\r\nAccept: */*\r\nAccept-Language: en-US\r\nConnection: Keep-Alive\r\nContent-Type: application/text\r\n\r\n"
