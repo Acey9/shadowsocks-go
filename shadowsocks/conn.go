@@ -140,7 +140,7 @@ func (c *Conn) GetAndIncrChunkId() (chunkId uint32) {
 func (c *Conn) Read(b []byte) (n int, err error) {
 
 	if c.Stage == STAGE_ADDR && !c.ota {
-		_, err = c.delSpoofHeader()
+		_, err = c.readSpoofHeader()
 		if err != nil {
 			return
 		}
@@ -215,7 +215,7 @@ func (c *Conn) write(b []byte) (n int, err error) {
 
 	c.encrypt(cipherData[len(iv):], b)
 	if c.Stage == STAGE_ADDR && !c.ota {
-		_, err = c.addSpoofHeader()
+		_, err = c.writeSpoofHeader()
 		if err != nil {
 			return
 		}
@@ -224,7 +224,7 @@ func (c *Conn) write(b []byte) (n int, err error) {
 	return
 }
 
-func (c *Conn) addSpoofHeader() (n int, err error) {
+func (c *Conn) writeSpoofHeader() (n int, err error) {
 	spoofData, err := c.SpoofProto.SpoofData()
 	if err == nil {
 		n, err = c.Conn.Write(spoofData)
@@ -232,7 +232,7 @@ func (c *Conn) addSpoofHeader() (n int, err error) {
 	return
 }
 
-func (c *Conn) delSpoofHeader() (n int, err error) {
+func (c *Conn) readSpoofHeader() (n int, err error) {
 	prefixLen, _ := c.SpoofProto.PrefixLen()
 	buf := make([]byte, prefixLen)
 	n, err = c.Conn.Read(buf)
