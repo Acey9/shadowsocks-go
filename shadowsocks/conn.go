@@ -140,19 +140,10 @@ func (c *Conn) GetAndIncrChunkId() (chunkId uint32) {
 func (c *Conn) Read(b []byte) (n int, err error) {
 
 	if c.Stage == STAGE_ADDR && !c.ota {
-		headLen, _ := c.SpoofProto.GetHeaderLen()
-		buf := make([]byte, headLen)
-		n, err = c.Conn.Read(buf)
-		if err != nil || n != int(headLen) {
+		_, err = c.delSpoofHeader()
+		if err != nil {
 			return
 		}
-		dataLen, _ := c.SpoofProto.Parse(buf)
-		buf = make([]byte, dataLen)
-		n, err = c.Conn.Read(buf)
-		if err != nil || n != int(dataLen) {
-			return
-		}
-
 		c.SetStage(STAGE_CONNECTING)
 	}
 
@@ -224,11 +215,35 @@ func (c *Conn) write(b []byte) (n int, err error) {
 
 	c.encrypt(cipherData[len(iv):], b)
 	if c.Stage == STAGE_ADDR && !c.ota {
-		spoofData, err := c.SpoofProto.Create()
-		if err == nil {
-			n, err = c.Conn.Write(spoofData)
+		_, err = c.addSpoofHeader()
+		if err != nil {
+			return
 		}
 	}
 	n, err = c.Conn.Write(cipherData)
+	return
+}
+
+func (c *Conn) addSpoofHeader() (n int, err error) {
+	spoofData, err := c.SpoofProto.SpoofData()
+	if err == nil {
+		n, err = c.Conn.Write(spoofData)
+	}
+	return
+}
+
+func (c *Conn) delSpoofHeader() (n int, err error) {
+	prefixLen, _ := c.SpoofProto.PrefixLen()
+	buf := make([]byte, prefixLen)
+	n, err = c.Conn.Read(buf)
+	if err != nil || n != int(prefixLen) {
+		return
+	}
+	suffixLen, _ := c.SpoofProto.SuffixLen(buf)
+	buf = make([]byte, suffixLen)
+	n, err = c.Conn.Read(buf)
+	if err != nil || n != int(suffixLen) {
+		return
+	}
 	return
 }

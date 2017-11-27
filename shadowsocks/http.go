@@ -54,13 +54,18 @@ var HttpHeader = "\r\nAccept: */*\r\nAccept-Language: en-US\r\nConnection: Keep-
 type Http struct {
 }
 
-func (http *Http) Parse(data []byte) (dataLen uint16, err error) {
-	headLen, _ := http.GetHeaderLen()
-	dataLen = binary.LittleEndian.Uint16(data[headLen-HttpHeaderLenSize:])
+func (http *Http) SuffixLen(data []byte) (suffixLen uint16, err error) {
+	prefixLen, _ := http.PrefixLen()
+	suffixLen = binary.LittleEndian.Uint16(data[prefixLen-HttpHeaderLenSize : prefixLen])
 	return
 }
 
-func (http *Http) Create() (data []byte, err error) {
+func (http *Http) PrefixLen() (prefixLen uint16, err error) {
+	prefixLen = uint16(len(HttPRequest)) + HttpHeaderLenSize
+	return
+}
+
+func (http *Http) SpoofData() (data []byte, err error) {
 	ua := http.getUa()
 	host := http.getHost()
 	cookie := http.getCookie()
@@ -81,11 +86,6 @@ func (http *Http) Create() (data []byte, err error) {
 	dbuf.Write(lenBuf)
 	dbuf.WriteString(hbuf.String())
 	data = dbuf.Bytes()
-	return
-}
-
-func (http *Http) GetHeaderLen() (dataLen uint16, err error) {
-	dataLen = uint16(len(HttPRequest)) + HttpHeaderLenSize
 	return
 }
 
