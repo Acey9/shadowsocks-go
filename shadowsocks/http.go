@@ -3,12 +3,14 @@ package shadowsocks
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"math/rand"
 	"time"
 )
 
 const (
-	HttPRequest = "POST / HTTP/1.1\r\nCookie:SIN="
+	HttPRequest       = "POST / HTTP/1.1\r\nCookie:SIN="
+	HttpHeaderLenSize = 2
 )
 
 var HttpUserAgent = []string{
@@ -54,21 +56,24 @@ type Http struct {
 
 func (http *Http) Parse(data []byte) (dataLen uint16, err error) {
 	headLen, _ := http.GetHeaderLen()
-	dataLen = binary.LittleEndian.Uint16(data[headLen-2:])
+	dataLen = binary.LittleEndian.Uint16(data[headLen-HttpHeaderLenSize:])
 	return
 }
 
 func (http *Http) Create() (data []byte, err error) {
 	ua := http.getUa()
 	host := http.getHost()
+	cookie := http.getCookie()
+
 	hbuf := bytes.Buffer{}
+	hbuf.WriteString(cookie)
 	hbuf.WriteString("\r\nhost: ")
 	hbuf.WriteString(host)
 	hbuf.WriteString("\r\nUser-Agent: ")
 	hbuf.WriteString(ua)
 	hbuf.WriteString(HttpHeader)
 
-	lenBuf := make([]byte, 2)
+	lenBuf := make([]byte, HttpHeaderLenSize)
 	binary.LittleEndian.PutUint16(lenBuf, uint16(len(hbuf.String())))
 
 	dbuf := bytes.Buffer{}
@@ -80,8 +85,13 @@ func (http *Http) Create() (data []byte, err error) {
 }
 
 func (http *Http) GetHeaderLen() (dataLen uint16, err error) {
-	dataLen = uint16(len(HttPRequest)) + 2
+	dataLen = uint16(len(HttPRequest)) + HttpHeaderLenSize
 	return
+}
+
+func (http *Http) getCookie() string {
+	ts := time.Now().UnixNano()
+	return fmt.Sprintf(".%d;", ts)
 }
 
 func (http *Http) getUa() string {
