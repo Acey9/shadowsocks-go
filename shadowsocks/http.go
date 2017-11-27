@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	HttPRequest       = "POST / HTTP/1.1\r\nCookie:SIN="
+	HttPRequest       = "POST / HTTP/1.1\r\nCookie: SIN="
 	HttpHeaderLenSize = 2
 )
 
