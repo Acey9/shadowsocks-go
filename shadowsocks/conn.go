@@ -20,7 +20,6 @@ const (
 	STAGE_DNS        = 3
 	STAGE_CONNECTING = 4
 	STAGE_STREAM     = 5
-	TEST_SPOOF       = true //TODO
 )
 
 type Conn struct {
@@ -46,9 +45,7 @@ func NewConn(c net.Conn, cipher *Cipher) *Conn {
 }
 
 func (c *Conn) SetStage(stage uint8) {
-	if TEST_SPOOF {
-		c.Stage = stage
-	}
+	c.Stage = stage
 }
 
 func (c *Conn) Close() error {
