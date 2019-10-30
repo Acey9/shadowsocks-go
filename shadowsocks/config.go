@@ -19,13 +19,16 @@ import (
 )
 
 type Config struct {
-	Server     interface{} `json:"server"`
-	ServerPort int         `json:"server_port"`
-	LocalPort  int         `json:"local_port"`
-	Password   string      `json:"password"`
-	Method     string      `json:"method"` // encryption method
-	Auth       bool        `json:"auth"`   // one time auth
-	Spoof      bool        `json:"sproof"` //protocol spoof
+	Server      interface{} `json:"server"`
+	ServerPort  int         `json:"server_port"`
+	LocalServer string      `json:"local_server"`
+	LocalPort   int         `json:"local_port"`
+	Password    string      `json:"password"`
+	LPassword   string      `json:"lpassword"`
+	LUser       string      `json:"luser"`
+	Method      string      `json:"method"` // encryption method
+	Auth        bool        `json:"auth"`   // one time auth
+	Spoof       bool        `json:"sproof"` //protocol spoof
 
 	// following options are only used by server
 	PortPassword map[string]string `json:"port_password"`

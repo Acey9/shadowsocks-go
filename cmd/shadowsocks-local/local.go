@@ -27,18 +27,66 @@ var (
 	errAuthExtraData = errors.New("socks authentication get extra data")
 	errReqExtraData  = errors.New("socks request get extra data")
 	errCmd           = errors.New("socks command not supported")
+	errAuth          = errors.New("socks authentication failed")
 )
 
 const (
 	socksVer5       = 5
 	socksCmdConnect = 1
+	authPassowrd    = 2
+	authNone        = 0
 )
 
 func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-func handShake(conn net.Conn) (err error) {
+func passwordAuth(conn net.Conn, user, password string) (pass bool, err error) {
+	var n, m int
+
+	buf := make([]byte, 513)
+
+	if n, err = io.ReadAtLeast(conn, buf, 2); err != nil {
+		return
+	}
+	m += n
+
+	userLen := int(buf[1])
+
+	msgLen := userLen + 2 + 1 //1 byte auth version + 1 byte user length + username + 1 byte password length
+
+	if m < msgLen {
+		//read username
+		if n, err = io.ReadAtLeast(conn, buf[m:msgLen], msgLen-m); err != nil {
+			return
+		}
+		m += n
+	}
+
+	pwdLen := int(buf[userLen+2])
+	msgLen += pwdLen
+	if m < msgLen {
+		//read password
+		if n, err = io.ReadAtLeast(conn, buf[m:msgLen], msgLen-m); err != nil {
+			return
+		}
+		m += n
+	}
+
+	recvUser := string(buf[2 : userLen+2])
+	recvPwd := string(buf[userLen+2+1 : userLen+2+1+pwdLen])
+
+	if recvUser != user || recvPwd != password {
+		err = errAuth
+		return
+	}
+
+	_, err = conn.Write([]byte{0x01, 0x00})
+
+	return
+}
+
+func handShake(conn net.Conn, config *ss.Config) (err error) {
 	const (
 		idVer     = 0
 		idNmethod = 1
@@ -51,6 +99,7 @@ func handShake(conn net.Conn) (err error) {
 	buf := make([]byte, 258)
 
 	var n int
+	var pass bool
 	ss.SetReadTimeout(conn)
 	// make sure we get the nmethod field
 	if n, err = io.ReadAtLeast(conn, buf, idNmethod+1); err != nil {
@@ -71,7 +120,18 @@ func handShake(conn net.Conn) (err error) {
 		return errAuthExtraData
 	}
 	// send confirmation: version 5, no authentication required
-	_, err = conn.Write([]byte{socksVer5, 0})
+	if config.LPassword != "" && config.LUser != "" {
+		_, err = conn.Write([]byte{socksVer5, authPassowrd})
+		if err != nil {
+			return
+		}
+		pass, err = passwordAuth(conn, config.LUser, config.LPassword)
+		if !pass || err != nil {
+			return
+		}
+	} else {
+		_, err = conn.Write([]byte{socksVer5, authNone})
+	}
 	return
 }
 
@@ -282,7 +342,7 @@ func createServerConn(rawaddr []byte, addr string) (remote *ss.Conn, err error) 
 	return nil, err
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, config *ss.Config) {
 	if debug {
 		debug.Printf("socks connect from %s\n", conn.RemoteAddr().String())
 	}
@@ -294,7 +354,7 @@ func handleConnection(conn net.Conn) {
 	}()
 
 	var err error = nil
-	if err = handShake(conn); err != nil {
+	if err = handShake(conn, config); err != nil {
 		log.Println("socks handshake:", err)
 		return
 	}
@@ -331,7 +391,7 @@ func handleConnection(conn net.Conn) {
 	debug.Println("closed connection to", addr)
 }
 
-func run(listenAddr string) {
+func run(listenAddr string, config *ss.Config) {
 	ln, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		log.Fatal(err)
@@ -343,7 +403,7 @@ func run(listenAddr string) {
 			log.Println("accept:", err)
 			continue
 		}
-		go handleConnection(conn)
+		go handleConnection(conn, config)
 	}
 }
 
@@ -355,15 +415,17 @@ func enoughOptions(config *ss.Config) bool {
 func main() {
 	log.SetOutput(os.Stdout)
 
-	var configFile, cmdServer, cmdLocal string
+	var configFile, cmdServer string
 	var cmdConfig ss.Config
 	var printVer, spoof bool
 
 	flag.BoolVar(&printVer, "version", false, "print version")
 	flag.StringVar(&configFile, "c", "config.json", "specify config file")
 	flag.StringVar(&cmdServer, "s", "", "server address")
-	flag.StringVar(&cmdLocal, "b", "", "local address, listen only to this address if specified")
+	flag.StringVar(&cmdConfig.LocalServer, "b", "", "local address, listen only to this address if specified")
 	flag.StringVar(&cmdConfig.Password, "k", "", "password")
+	flag.StringVar(&cmdConfig.LPassword, "a", "", "local password")
+	flag.StringVar(&cmdConfig.LUser, "u", "", "local user name")
 	flag.IntVar(&cmdConfig.ServerPort, "p", 0, "server port")
 	flag.IntVar(&cmdConfig.Timeout, "t", 300, "timeout in seconds")
 	flag.IntVar(&cmdConfig.LocalPort, "l", 0, "local socks5 proxy port")
@@ -428,5 +490,9 @@ func main() {
 
 	parseServerConfig(config)
 
-	run(cmdLocal + ":" + strconv.Itoa(config.LocalPort))
+	if config.LPassword != "" && config.LUser != "" {
+		log.Printf("local socks5 auth is password")
+	}
+
+	run(config.LocalServer+":"+strconv.Itoa(config.LocalPort), config)
 }
