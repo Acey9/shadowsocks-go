@@ -280,7 +280,7 @@ func run(port, password string, auth bool) {
 	}
 	passwdManager.add(port, password, ln)
 	var cipher *ss.Cipher
-	log.Printf("server listening port %v ...\n", port)
+	log.Printf("server listening server:port %v:%v ...\n", server, port)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
