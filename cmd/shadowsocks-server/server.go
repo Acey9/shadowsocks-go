@@ -329,7 +329,7 @@ func main() {
 	log.SetOutput(os.Stdout)
 
 	var cmdConfig ss.Config
-	var printVer, spoof bool
+	var printVer bool
 	var core int
 
 	flag.BoolVar(&printVer, "version", false, "print version")
@@ -339,7 +339,7 @@ func main() {
 	flag.IntVar(&cmdConfig.ServerPort, "p", 0, "server port")
 	flag.IntVar(&cmdConfig.Timeout, "t", 300, "timeout in seconds")
 	flag.StringVar(&cmdConfig.Method, "m", "", "encryption method, default: aes-256-cfb")
-	flag.BoolVar(&spoof, "f", false, "protocol spoof")
+	flag.BoolVar(&cmdConfig.Spoof, "f", false, "protocol spoof")
 	flag.IntVar(&core, "core", 0, "maximum number of CPU cores to use, default is determinied by Go runtime")
 	flag.BoolVar((*bool)(&debug), "d", false, "print debug message")
 
@@ -371,7 +371,6 @@ func main() {
 	if config.Method == "" {
 		config.Method = "aes-256-cfb"
 	}
-	config.Spoof = spoof
 	if err = ss.CheckCipherMethod(config.Method); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

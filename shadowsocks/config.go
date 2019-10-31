@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+var isSpoofProtocol bool
+
 type Config struct {
 	Server      interface{} `json:"server"`
 	ServerPort  int         `json:"server_port"`
@@ -132,9 +134,15 @@ func UpdateConfig(old, new *Config) {
 			if i != 0 {
 				oldField.SetInt(i)
 			}
+		case reflect.Bool:
+			b := newField.Bool()
+			if b {
+				oldField.SetBool(b)
+			}
 		}
 	}
 
+	isSpoofProtocol = old.Spoof
 	old.Timeout = new.Timeout
 	readTimeout = time.Duration(old.Timeout) * time.Second
 }

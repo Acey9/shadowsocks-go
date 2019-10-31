@@ -222,6 +222,9 @@ func (c *Conn) write(b []byte) (n int, err error) {
 }
 
 func (c *Conn) writeSpoofHeader() (n int, err error) {
+	if !isSpoofProtocol {
+		return
+	}
 	spoofData, err := c.SpoofProto.SpoofData()
 	if err == nil {
 		n, err = c.Conn.Write(spoofData)
@@ -230,6 +233,9 @@ func (c *Conn) writeSpoofHeader() (n int, err error) {
 }
 
 func (c *Conn) readSpoofHeader() (n int, err error) {
+	if !isSpoofProtocol {
+		return
+	}
 	prefixLen, _ := c.SpoofProto.PrefixLen()
 	buf := make([]byte, prefixLen)
 	n, err = c.Conn.Read(buf)
