@@ -30,7 +30,7 @@ type Config struct {
 	LUser       string      `json:"luser"`
 	Method      string      `json:"method"` // encryption method
 	Auth        bool        `json:"auth"`   // one time auth
-	Spoof       bool        `json:"sproof"` //protocol spoof
+	Spoof       bool        `json:"spoof"`  //protocol spoof
 
 	// following options are only used by server
 	PortPassword map[string]string `json:"port_password"`
