@@ -26,8 +26,8 @@ type Config struct {
 	LocalServer string      `json:"local_server"`
 	LocalPort   int         `json:"local_port"`
 	Password    string      `json:"password"`
-	LPassword   string      `json:"lpassword"`
-	LUser       string      `json:"luser"`
+	LPassword   string      `json:"local_password"`
+	LUser       string      `json:"local_user"`
 	Method      string      `json:"method"` // encryption method
 	Auth        bool        `json:"auth"`   // one time auth
 	Spoof       bool        `json:"spoof"`  //protocol spoof
