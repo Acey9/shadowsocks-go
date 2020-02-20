@@ -28,9 +28,10 @@ type Config struct {
 	Password    string      `json:"password"`
 	LPassword   string      `json:"local_password"`
 	LUser       string      `json:"local_user"`
-	Method      string      `json:"method"` // encryption method
-	Auth        bool        `json:"auth"`   // one time auth
-	Spoof       bool        `json:"spoof"`  //protocol spoof
+	Method      string      `json:"method"`      // encryption method
+	Auth        bool        `json:"auth"`        // one time auth
+	Spoof       bool        `json:"spoof"`       //protocol spoof
+	RandServer  bool        `json:"rand_server"` //random remote server address
 
 	// following options are only used by server
 	PortPassword map[string]string `json:"port_password"`

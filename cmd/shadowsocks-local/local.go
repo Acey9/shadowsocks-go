@@ -317,9 +317,16 @@ func connectToServer(serverId int, rawaddr []byte, addr string) (remote *ss.Conn
 // connection failure, try the next server. A failed server will be tried with
 // some probability according to its fail count, so we can discover recovered
 // servers.
-func createServerConn(rawaddr []byte, addr string) (remote *ss.Conn, err error) {
+func createServerConn(rawaddr []byte, addr string, config *ss.Config) (remote *ss.Conn, err error) {
 	const baseFailCnt = 20
 	n := len(servers.srvCipher)
+	if config.RandServer {
+		sid := rand.Intn(n)
+		remote, err = connectToServer(sid, rawaddr, addr)
+		if err == nil {
+			return
+		}
+	}
 	skipped := make([]int, 0)
 	for i := 0; i < n; i++ {
 		// skip failed server, but try it with some probability
@@ -372,7 +379,7 @@ func handleConnection(conn net.Conn, config *ss.Config) {
 		return
 	}
 
-	remote, err := createServerConn(rawaddr, addr)
+	remote, err := createServerConn(rawaddr, addr, config)
 	if err != nil {
 		if len(servers.srvCipher) > 1 {
 			log.Println("Failed connect to all avaiable shadowsocks server")

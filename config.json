@@ -1,6 +1,10 @@
 {
         "server":"127.0.0.1",
         "server_port":8388,
+        "server_password": [
+		    ["127.0.0.1:8387", "foobar", "aes-256-cfb"],
+		    ["127.0.0.1:8388", "barfoo", "aes-256-cfb"]
+	    ],
         "local_server":"127.0.0.1",
         "local_port":1080,
         "password":"barfoo!",
