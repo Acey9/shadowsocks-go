@@ -21,6 +21,7 @@ import (
 var isSpoofProtocol bool
 
 type Config struct {
+	ServerProxy string      `json:"server_proxy"`
 	Server      interface{} `json:"server"`
 	ServerPort  int         `json:"server_port"`
 	LocalServer string      `json:"local_server"`

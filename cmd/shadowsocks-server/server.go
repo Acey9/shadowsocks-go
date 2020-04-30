@@ -6,9 +6,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"golang.org/x/net/proxy"
 	"io"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"os/signal"
 	"runtime"
@@ -16,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	ss "github.com/shadowsocks/shadowsocks-go/shadowsocks"
 )
@@ -111,6 +114,9 @@ var nextLogConnCnt int = logCntDelta
 
 func handleConnection(conn *ss.Conn, auth bool) {
 	var host string
+	var remote net.Conn
+	var err error
+	var dialer proxy.Dialer
 
 	connCnt++ // this maybe not accurate, but should be enough
 	if connCnt-nextLogConnCnt >= 0 {
@@ -144,8 +150,35 @@ func handleConnection(conn *ss.Conn, auth bool) {
 		return
 	}
 	conn.SetStage(ss.STAGE_CONNECTING)
-	debug.Println("connecting", host)
-	remote, err := net.Dial("tcp", host)
+
+	if config.ServerProxy != "" {
+		proxyUrl, err := url.Parse(config.ServerProxy)
+		if err != nil {
+			log.Println("proxy error:", err)
+		}
+		username := proxyUrl.User.Username()
+		password, hasPassword := proxyUrl.User.Password()
+		auth := &proxy.Auth{}
+		if username != "" {
+			auth.User = username
+		}
+		if hasPassword {
+			auth.Password = password
+		}
+		if username == "" && !hasPassword {
+			auth = nil
+		}
+		dialer, err = proxy.SOCKS5("tcp", proxyUrl.Host, auth, &net.Dialer{Timeout: time.Second * 30})
+		if err != nil {
+			log.Println("socks5.dial error:", err)
+			return
+		}
+		debug.Println("connecting", host, "via proxy", config.ServerProxy)
+		remote, err = dialer.Dial("tcp", host)
+	} else {
+		debug.Println("connecting", host)
+		remote, err = net.Dial("tcp", host)
+	}
 	if err != nil {
 		if ne, ok := err.(*net.OpError); ok && (ne.Err == syscall.EMFILE || ne.Err == syscall.ENFILE) {
 			// log too many open file error
