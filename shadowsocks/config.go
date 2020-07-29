@@ -21,18 +21,21 @@ import (
 var isSpoofProtocol bool
 
 type Config struct {
-	ServerProxy string      `json:"server_proxy"`
-	Server      interface{} `json:"server"`
-	ServerPort  int         `json:"server_port"`
-	LocalServer string      `json:"local_server"`
-	LocalPort   int         `json:"local_port"`
-	Password    string      `json:"password"`
-	LPassword   string      `json:"local_password"`
-	LUser       string      `json:"local_user"`
-	Method      string      `json:"method"`      // encryption method
-	Auth        bool        `json:"auth"`        // one time auth
-	Spoof       bool        `json:"spoof"`       //protocol spoof
-	RandServer  bool        `json:"rand_server"` //random remote server address
+	ServerProxy  string      `json:"server_proxy"`
+	Server       interface{} `json:"server"`
+	ServerPort   int         `json:"server_port"`
+	LocalServer  string      `json:"local_server"`
+	LocalPort    int         `json:"local_port"`
+	Password     string      `json:"password"`
+	LPassword    string      `json:"local_password"`
+	LUser        string      `json:"local_user"`
+	LocalTLSCert string      `json:"local_tls_cert"`
+	LocalTLSKey  string      `json:"local_tls_key"`
+	LocalOverTLS bool        `json:"local_over_tls"` //local over tls
+	Method       string      `json:"method"`         // encryption method
+	Auth         bool        `json:"auth"`           // one time auth
+	Spoof        bool        `json:"spoof"`          //protocol spoof
+	RandServer   bool        `json:"rand_server"`    //random remote server address
 
 	// following options are only used by server
 	PortPassword map[string]string `json:"port_password"`

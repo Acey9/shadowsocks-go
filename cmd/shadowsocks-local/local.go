@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/binary"
 	"errors"
 	"flag"
@@ -399,9 +400,26 @@ func handleConnection(conn net.Conn, config *ss.Config) {
 }
 
 func run(listenAddr string, config *ss.Config) {
-	ln, err := net.Listen("tcp", listenAddr)
-	if err != nil {
-		log.Fatal(err)
+
+	var ln net.Listener
+	var err error
+
+	if config.LocalOverTLS && config.LocalTLSCert != "" && config.LocalTLSKey != "" {
+		cert, err := tls.LoadX509KeyPair(config.LocalTLSCert, config.LocalTLSKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}}
+		ln, err = tls.Listen("tcp", listenAddr, cfg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("listen on tls")
+	} else {
+		ln, err = net.Listen("tcp", listenAddr)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	log.Printf("starting local socks5 server at %v ...\n", listenAddr)
 	for {

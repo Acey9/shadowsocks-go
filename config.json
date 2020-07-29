@@ -12,5 +12,8 @@
         "timeout":600,
         "local_user":"namisan!",
         "local_password":"mirai!@*.a",
+        "local_over_tls":false,
+        "local_tls_cert":"/etc/tls/localhost.crt",
+        "local_tls_key":"/etc/tls/localhost.key",
         "spoof":true
 }
